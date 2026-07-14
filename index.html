@@ -60,6 +60,375 @@
   }
   .badge.red { background: #c0392b; }
   .badge.green { background: #27ae60; }
+  select {
+    width: 100%; padding: 12px; font-size: 16px;
+    background: #0f1115; color: #fff;
+    border: 1px solid #333; border-radius: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📹 OldCam</h1>
+
+  <!-- Выбор режима -->
+  <div id="screen-mode" class="card">
+    <p style="text-align:center; margin:6px 0 14px;">Преврати старый телефон в камеру наблюдения</p>
+    <button class="mode-btn" onclick="goMode('cam')">📷 Режим КАМЕРА<br><span class="hint">этот телефон стримит</span></button>
+    <button class="mode-btn secondary" onclick="goMode('view')">👁 Режим ПРОСМОТР<br><span class="hint">смотреть с другого устройства</span></button>
+  </div>
+
+  <!-- Экран КАМЕРА -->
+  <div id="screen-cam" class="hidden">
+    <div class="card">
+      <label>Пароль комнаты (придумай любой)</label>
+      <input type="text" id="cam-pass" placeholder="например: myhome123">
+      <p class="hint">Этот же пароль вводи на устройстве просмотра</p>
+
+      <label>Камера</label>
+      <select id="cam-select">
+        <option value="environment">Задняя камера</option>
+        <option value="user">Передняя камера</option>
+      </select>
+
+      <button onclick="startCam()">▶ Начать трансляцию</button>
+      <button class="danger" onclick="stopCam()">⏹ Остановить</button>
+
+      <div class="status" id="cam-status">Ожидание запуска…</div>
+      <div class="hint" id="cam-hint"></div>
+    </div>
+
+    <div class="card">
+      <video id="cam-preview" autoplay muted playsinline></video>
+    </div>
+  </div>
+
+  <!-- Экран ПРОСМОТР -->
+  <div id="screen-view" class="hidden">
+    <div class="card">
+      <label>Пароль комнаты</label>
+      <input type="password" id="view-pass" placeholder="введи пароль от камеры">
+      <button onclick="startView()">🔗 Подключиться</button>
+      <button class="danger" onclick="stopView()">✖ Отключиться</button>
+      <div class="status" id="view-status">Ожидание…</div>
+    </div>
+
+    <div class="card">
+      <video id="view-video" autoplay playsinline controls></video>
+
+      <div class="toolbar">
+        <div class="row">
+          <button onclick="takeShot()">📸 Скриншот</button>
+          <button class="secondary" id="talk-btn" onclick="toggleTalk()">🎤 Говорить</button>
+        </div>
+        <button class="secondary" onclick="toggleFullscreen()">⛶ Полный экран</button>
+      </div>
+
+      <div class="shot-list" id="shots"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Навигация =====
+function goMode(m) {
+  document.getElementById('screen-mode').className = 'hidden';
+  if (m === 'cam') {
+    document.getElementById('screen-cam').className = '';
+  } else {
+    document.getElementById('screen-view').className = '';
+  }
+}
+
+// ===== Утилиты =====
+function setStatus(id, text, color) {
+  var el = document.getElementById(id);
+  el.textContent = text;
+  if (color) el.style.color = color;
+}
+
+// ===== Совместимость с старыми браузерами =====
+function getUserMediaCompat(constraints, successCallback, errorCallback) {
+  // Пробуем разные варианты для старых браузеров
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(successCallback)
+      .catch(errorCallback);
+  } else if (navigator.getUserMedia) {
+    navigator.getUserMedia(constraints, successCallback, errorCallback);
+  } else if (navigator.webkitGetUserMedia) {
+    navigator.webkitGetUserMedia(constraints, successCallback, errorCallback);
+  } else if (navigator.mozGetUserMedia) {
+    navigator.mozGetUserMedia(constraints, successCallback, errorCallback);
+  } else if (navigator.msGetUserMedia) {
+    navigator.msGetUserMedia(constraints, successCallback, errorCallback);
+  } else {
+    errorCallback(new Error('getUserMedia не поддерживается в этом браузере'));
+  }
+}
+
+// ===== Режим КАМЕРА =====
+var camPeer = null;
+var camStream = null;
+var camCalls = [];
+
+function startCam() {
+  var pass = document.getElementById('cam-pass').value.trim();
+  if (!pass) { alert('Введи пароль'); return; }
+
+  var facing = document.getElementById('cam-select').value;
+  setStatus('cam-status', 'Запрашиваю камеру…', '#f39c12');
+
+  // Проверяем поддержку
+  if (!navigator.mediaDevices && !navigator.getUserMedia && !navigator.webkitGetUserMedia && 
+      !navigator.mozGetUserMedia && !navigator.msGetUserMedia) {
+    setStatus('cam-status', '❌ Браузер не поддерживает камеру. Нужен Android 4.4+ в Chrome/Firefox.', '#e74c3c');
+    return;
+  }
+
+  var constraints = {
+    video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } },
+    audio: true
+  };
+
+  // Для очень старых браузеров - упрощенные constraints
+  if (!navigator.mediaDevices) {
+    constraints = {
+      video: true,
+      audio: true
+    };
+  }
+
+  getUserMediaCompat(
+    constraints,
+    function(stream) {
+      camStream = stream;
+      var video = document.getElementById('cam-preview');
+      
+      // Совместимость с старыми браузерами
+      if ('srcObject' in video) {
+        video.srcObject = stream;
+      } else if (window.URL && window.URL.createObjectURL) {
+        video.src = window.URL.createObjectURL(stream);
+      } else if (window.webkitURL && window.webkitURL.createObjectURL) {
+        video.src = window.webkitURL.createObjectURL(stream);
+      } else {
+        setStatus('cam-status', '❌ Браузер не поддерживает отображение видео', '#e74c3c');
+        return;
+      }
+      
+      setStatus('cam-status', 'Камера включена. Подключаюсь к серверу…', '#f39c12');
+      initCamPeer(pass);
+    },
+    function(err) {
+      var errorMsg = 'Ошибка камеры: ';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMsg += 'Доступ запрещен. Разрешите доступ к камере в настройках браузера.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMsg += 'Камера не найдена.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMsg += 'Камера уже используется другим приложением.';
+      } else {
+        errorMsg += err.message || err.name || 'неизвестная ошибка';
+      }
+      setStatus('cam-status', '❌ ' + errorMsg, '#e74c3c');
+      console.error('Camera error:', err);
+    }
+  );
+}
+
+function initCamPeer(pass) {
+  var peerId = 'oldcam-' + pass;
+  camPeer = new Peer(peerId, { debug: 1 });
+
+  camPeer.on('open', function(id) {
+    setStatus('cam-status', '● В ЭФИРЕ. ID: ' + pass, '#27ae60');
+    document.getElementById('cam-hint').textContent =
+      'На другом устройстве открой эту же страницу, выбери ПРОСМОТР и введи пароль: ' + pass;
+  });
+
+  camPeer.on('call', function(call) {
+    call.answer(camStream);
+    camCalls.push(call);
+    call.on('close', function() {
+      var i = camCalls.indexOf(call);
+      if (i >= 0) camCalls.splice(i, 1);
+    });
+  });
+
+  camPeer.on('error', function(err) {
+    setStatus('cam-status', '❌ Ошибка: ' + err.type + '. ID уже занят?', '#e74c3c');
+  });
+}
+
+function stopCam() {
+  if (camStream) {
+    if (camStream.getTracks) {
+      camStream.getTracks().forEach(function(t){ t.stop(); });
+    } else if (camStream.stop) {
+      camStream.stop();
+    }
+    camStream = null;
+  }
+  if (camPeer) { camPeer.destroy(); camPeer = null; }
+  camCalls = [];
+  document.getElementById('cam-preview').srcObject = null;
+  setStatus('cam-status', 'Остановлено', '#aab');
+  document.getElementById('cam-hint').textContent = '';
+}
+
+// ===== Режим ПРОСМОТР =====
+var viewPeer = null;
+var viewCall = null;
+var viewMicStream = null;
+var talking = false;
+
+function startView() {
+  var pass = document.getElementById('view-pass').value.trim();
+  if (!pass) { alert('Введи пароль'); return; }
+
+  setStatus('view-status', 'Подключаюсь…', '#f39c12');
+
+  viewPeer = new Peer('oldcam-view-' + Math.random().toString(36).slice(2,8), { debug: 1 });
+
+  viewPeer.on('open', function() {
+    var targetId = 'oldcam-' + pass;
+    
+    // Проверяем поддержку
+    if (!navigator.mediaDevices && !navigator.getUserMedia && !navigator.webkitGetUserMedia) {
+      setStatus('view-status', '❌ Браузер не поддерживает WebRTC', '#e74c3c');
+      return;
+    }
+    
+    // Запрашиваем только микрофон
+    getUserMediaCompat(
+      { video: false, audio: true },
+      function(mic) {
+        viewMicStream = mic;
+        viewCall = viewPeer.call(targetId, mic);
+        bindViewCall();
+      },
+      function() {
+        // даже без микрофона пробуем подключиться
+        viewCall = viewPeer.call(targetId, null);
+        bindViewCall();
+      }
+    );
+  });
+
+  viewPeer.on('error', function(err) {
+    setStatus('view-status', '❌ Ошибка: ' + err.type + '. Камера не в сети или неверный пароль.', '#e74c3c');
+  });
+}
+
+function bindViewCall() {
+  setStatus('view-status', 'Ожидание потока…', '#f39c12');
+  viewCall.on('stream', function(remoteStream) {
+    var video = document.getElementById('view-video');
+    if ('srcObject' in video) {
+      video.srcObject = remoteStream;
+    } else if (window.URL && window.URL.createObjectURL) {
+      video.src = window.URL.createObjectURL(remoteStream);
+    }
+    setStatus('view-status', '● Подключено', '#27ae60');
+  });
+  viewCall.on('close', function() {
+    setStatus('view-status', 'Соединение закрыто', '#e74c3c');
+  });
+  viewCall.on('error', function(err) {
+    setStatus('view-status', '❌ Ошибка звонка: ' + err, '#e74c3c');
+  });
+}
+
+function stopView() {
+  if (viewCall) { viewCall.close(); viewCall = null; }
+  if (viewMicStream) {
+    if (viewMicStream.getTracks) {
+      viewMicStream.getTracks().forEach(function(t){t.stop();});
+    } else if (viewMicStream.stop) {
+      viewMicStream.stop();
+    }
+    viewMicStream = null;
+  }
+  if (viewPeer) { viewPeer.destroy(); viewPeer = null; }
+  document.getElementById('view-video').srcObject = null;
+  setStatus('view-status', 'Отключено', '#aab');
+  talking = false;
+  document.getElementById('talk-btn').textContent = '🎤 Говорить';
+}
+
+// ===== Говорить (вкл/выкл микрофон) =====
+function toggleTalk() {
+  if (!viewMicStream) { alert('Микрофон не активен'); return; }
+  talking = !talking;
+  viewMicStream.getAudioTracks().forEach(function(t){ t.enabled = talking; });
+  var btn = document.getElementById('talk-btn');
+  btn.textContent = talking ? '🔴 Идёт передача' : '🎤 Говорить';
+  btn.className = talking ? 'danger' : 'secondary';
+}
+
+// ===== Скриншот =====
+function takeShot() {
+  var v = document.getElementById('view-video');
+  if (!v.videoWidth) { alert('Нет видео'); return; }
+  var c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0);
+  var url = c.toDataURL('image/png');
+
+  var a = document.createElement('a');
+  a.href = url;
+  var d = new Date();
+  a.download = 'oldcam-' + d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate() +
+               '-' + d.getHours() + '-' + d.getMinutes() + '-' + d.getSeconds() + '.png';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+  // Превью
+  var list = document.getElementById('shots');
+  var img = document.createElement('img');
+  img.src = url;
+  list.insertBefore(img, list.firstChild);
+}
+
+// ===== Полный экран =====
+function toggleFullscreen() {
+  var v = document.getElementById('view-video');
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    if (v.requestFullscreen) v.requestFullscreen();
+    else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  }
+}
+</script>
+</body>
+</html>  .row { display: -webkit-box; display: -ms-flexbox; display: flex; gap: 8px; }
+  .row button { margin-top: 0; }
+  video {
+    width: 100%; background: #000; border-radius: 8px;
+    max-height: 60vh; display: block;
+  }
+  .status {
+    font-size: 13px; color: #aab; padding: 8px;
+    background: #0f1115; border-radius: 6px; margin-top: 8px;
+  }
+  .hidden { display: none !important; }
+  .mode-btn { font-size: 18px; padding: 18px; }
+  .hint { font-size: 12px; color: #889; margin-top: 6px; }
+  .toolbar { margin-top: 10px; }
+  .toolbar button { margin-top: 8px; }
+  .shot-list { margin-top: 10px; }
+  .shot-list img {
+    width: 100%; max-width: 300px; border-radius: 6px;
+    margin: 4px; border: 1px solid #333;
+  }
+  .badge {
+    display: inline-block; padding: 3px 8px; border-radius: 12px;
+    font-size: 12px; background: #2d7cf0; color: #fff;
+  }
+  .badge.red { background: #c0392b; }
+  .badge.green { background: #27ae60; }
 </style>
 </head>
 <body>
