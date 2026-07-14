@@ -2,39 +2,503 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OldCam</title>
 <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 <style>
-  :root {
-    --md-sys-color-primary: #00639b;
-    --md-sys-color-on-primary: #ffffff;
-    --md-sys-color-primary-container: #cde5ff;
-    --md-sys-color-on-primary-container: #001d32;
-    --md-sys-color-secondary: #52606d;
-    --md-sys-color-secondary-container: #d5e5f4;
-    --md-sys-color-surface: #fdfcff;
-    --md-sys-color-surface-variant: #dfe2eb;
-    --md-sys-color-background: #fdfcff;
-    --md-sys-color-error: #ba1a1a;
-    --md-sys-color-on-surface: #191c1e;
-    --md-sys-color-outline: #73777f;
-    --md-sys-shape-corner-large: 28px;
-    --md-sys-shape-corner-medium: 16px;
-    --md-sys-shape-corner-small: 12px;
-    --md-sys-elevation-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-    --md-sys-elevation-2: 0 3px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.12);
-    --md-sys-elevation-3: 0 10px 20px rgba(0,0,0,0.15), 0 3px 6px rgba(0,0,0,0.10);
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  padding: 16px;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.header {
+  background: #1976d2;
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.btn {
+  width: 100%;
+  padding: 16px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-primary {
+  background: #1976d2;
+  color: white;
+}
+
+.btn-secondary {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.btn-danger {
+  background: #d32f2f;
+  color: white;
+}
+
+.btn:active {
+  opacity: 0.8;
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.video-box {
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 12px 0;
+  min-height: 240px;
+  position: relative;
+}
+
+video {
+  width: 100%;
+  display: block;
+}
+
+.placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #666;
+  text-align: center;
+}
+
+.status {
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.status-wait {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-error {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.debug {
+  background: #263238;
+  color: #aed581;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-top: 12px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+label {
+  display: block;
+  margin: 12px 0 4px;
+  font-weight: bold;
+  color: #555;
+}
+
+select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1> OldCam</h1>
+    <p>Камера наблюдения</p>
+  </div>
+
+  <!-- Главное меню -->
+  <div id="menuScreen" class="card">
+    <h2 style="margin-bottom:16px;">Выберите режим:</h2>
+    <button class="btn btn-primary" onclick="goToCamera()">
+      📷 КАМЕРА<br>
+      <small>Транслировать с этого телефона</small>
+    </button>
+    <button class="btn btn-secondary" onclick="goToViewer()">
+      👁 ПРОСМОТР<br>
+      <small>Смотреть с другого устройства</small>
+    </button>
+  </div>
+
+  <!-- Режим камеры -->
+  <div id="cameraScreen" class="card hidden">
+    <h2 style="margin-bottom:16px;"> Камера</h2>
+    
+    <label>Код комнаты:</label>
+    <input type="text" id="camCode" class="input" placeholder="Придумайте код">
+    
+    <label>Камера:</label>
+    <select id="camSelect">
+      <option value="environment">Задняя</option>
+      <option value="user">Передняя</option>
+    </select>
+    
+    <button class="btn btn-primary" onclick="startCam()" style="margin-top:16px;">
+      ▶ Начать
+    </button>
+    <button class="btn btn-secondary" onclick="backToMenu()">
+      ← Назад
+    </button>
+    
+    <div id="camStatus" class="status status-wait hidden"></div>
+    
+    <div class="video-box">
+      <video id="camVideo" autoplay muted playsinline></video>
+      <div class="placeholder" id="camPlaceholder">
+        <div style="font-size:48px;margin-bottom:8px;">📷</div>
+        <div>Нажмите "Начать"</div>
+      </div>
+    </div>
+    
+    <div class="debug" id="camDebug"></div>
+  </div>
+
+  <!-- Режим просмотра -->
+  <div id="viewerScreen" class="card hidden">
+    <h2 style="margin-bottom:16px;">👁 Просмотр</h2>
+    
+    <label>Код комнаты:</label>
+    <input type="password" id="viewCode" class="input" placeholder="Введите код">
+    
+    <button class="btn btn-primary" onclick="connectCam()" style="margin-top:16px;">
+      🔗 Подключиться
+    </button>
+    <button class="btn btn-secondary" onclick="backToMenu()">
+      ← Назад
+    </button>
+    
+    <div id="viewStatus" class="status status-wait hidden"></div>
+    
+    <div class="video-box">
+      <video id="viewVideo" autoplay playsinline controls></video>
+      <div class="placeholder" id="viewPlaceholder">
+        <div style="font-size:48px;margin-bottom:8px;">📺</div>
+        <div>Нет подключения</div>
+      </div>
+    </div>
+    
+    <button class="btn btn-secondary" onclick="takeShot()" id="shotBtn" disabled>
+      📸 Скриншот
+    </button>
+    
+    <div class="debug" id="viewDebug"></div>
+  </div>
+</div>
+
+<script>
+// ===== Отладка =====
+function log(id, msg) {
+  var el = document.getElementById(id);
+  var time = new Date().toLocaleTimeString();
+  el.innerHTML += '[' + time + '] ' + msg + '<br>';
+  el.scrollTop = el.scrollHeight;
+  console.log('[' + id + '] ' + msg);
+}
+
+// ===== Навигация =====
+function goToCamera() {
+  console.log('goToCamera clicked');
+  document.getElementById('menuScreen').classList.add('hidden');
+  document.getElementById('cameraScreen').classList.remove('hidden');
+  document.getElementById('camDebug').innerHTML = '';
+  log('camDebug', 'Экран камеры открыт');
+}
+
+function goToViewer() {
+  console.log('goToViewer clicked');
+  document.getElementById('menuScreen').classList.add('hidden');
+  document.getElementById('viewerScreen').classList.remove('hidden');
+  document.getElementById('viewDebug').innerHTML = '';
+  log('viewDebug', 'Экран просмотра открыт');
+}
+
+function backToMenu() {
+  document.getElementById('cameraScreen').classList.add('hidden');
+  document.getElementById('viewerScreen').classList.add('hidden');
+  document.getElementById('menuScreen').classList.remove('hidden');
+  stopAll();
+}
+
+// ===== Камера =====
+var camPeer = null;
+var camStream = null;
+
+function startCam() {
+  var code = document.getElementById('camCode').value.trim();
+  if (!code) {
+    alert('Введите код комнаты!');
+    return;
   }
+  
+  log('camDebug', 'Запуск камеры, код: ' + code);
+  showStatus('camStatus', 'Запрашиваю камеру...', 'wait');
+  
+  // Проверяем поддержку
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    log('camDebug', 'ERROR: getUserMedia не поддерживается');
+    showStatus('camStatus', 'Браузер не поддерживает камеру', 'error');
+    return;
+  }
+  
+  var facing = document.getElementById('camSelect').value;
+  log('camDebug', 'Запрос getUserMedia, facing: ' + facing);
+  
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: facing },
+    audio: true
+  })
+  .then(function(stream) {
+    log('camDebug', '✅ Камера получена!');
+    camStream = stream;
+    
+    // Показываем видео
+    var video = document.getElementById('camVideo');
+    video.srcObject = stream;
+    
+    video.onloadedmetadata = function() {
+      log('camDebug', 'Видео загружено: ' + video.videoWidth + 'x' + video.videoHeight);
+      video.play();
+      document.getElementById('camPlaceholder').style.display = 'none';
+    };
+    
+    showStatus('camStatus', 'Камера работает! Создаю сервер...', 'ok');
+    
+    // Создаём Peer
+    setTimeout(function() {
+      initPeer(code);
+    }, 500);
+  })
+  .catch(function(err) {
+    log('camDebug', '❌ Ошибка: ' + err.name + ' - ' + err.message);
+    showStatus('camStatus', 'Ошибка: ' + err.message, 'error');
+  });
+}
+
+function initPeer(code) {
+  var peerId = 'oldcam-' + code.toLowerCase();
+  log('camDebug', 'Создаю Peer ID: ' + peerId);
+  
+  try {
+    camPeer = new Peer(peerId, {
+      debug: 2,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' }
+        ]
+      }
+    });
+    
+    camPeer.on('open', function(id) {
+      log('camDebug', '✅ Peer открыт: ' + id);
+      showStatus('camStatus', '● ОНЛАЙН! Код: ' + code, 'ok');
+    });
+    
+    camPeer.on('call', function(call) {
+      log('camDebug', ' Входящий звонок!');
+      call.answer(camStream);
+      
+      call.on('stream', function() {
+        log('camDebug', 'Поток отправлен');
+      });
+    });
+    
+    camPeer.on('error', function(err) {
+      log('camDebug', ' Peer error: ' + err.type);
+      if (err.type === 'unavailable-id') {
+        showStatus('camStatus', 'Код занят! Возьмите другой', 'error');
+      }
+    });
+  } catch(e) {
+    log('camDebug', '❌ Исключение: ' + e.message);
+  }
+}
+
+// ===== Просмотр =====
+var viewPeer = null;
+var viewCall = null;
+
+function connectCam() {
+  var code = document.getElementById('viewCode').value.trim();
+  if (!code) {
+    alert('Введите код!');
+    return;
+  }
+  
+  log('viewDebug', 'Подключение к: ' + code);
+  showStatus('viewStatus', 'Подключение...', 'wait');
+  
+  var targetId = 'oldcam-' + code.toLowerCase();
+  
+  viewPeer = new Peer(null, {
+    debug: 2,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ]
+    }
+  });
+  
+  viewPeer.on('open', function(id) {
+    log('viewDebug', 'Peer открыт: ' + id);
+    log('viewDebug', 'Звоню: ' + targetId);
+    
+    viewCall = viewPeer.call(targetId, null);
+    bindCall();
+    
+    // Таймаут
+    setTimeout(function() {
+      if (!viewCall || !viewCall.open) {
+        log('viewDebug', 'Таймаут!');
+        showStatus('viewStatus', 'Камера не отвечает', 'error');
+      }
+    }, 10000);
+  });
+  
+  viewPeer.on('error', function(err) {
+    log('viewDebug', '❌ Ошибка: ' + err.type);
+    showStatus('viewStatus', 'Ошибка: ' + err.type, 'error');
+  });
+}
+
+function bindCall() {
+  viewCall.on('stream', function(stream) {
+    log('viewDebug', '✅ ПОЛУЧЕН ПОТОК!');
+    
+    var video = document.getElementById('viewVideo');
+    video.srcObject = stream;
+    
+    video.onloadedmetadata = function() {
+      log('viewDebug', 'Видео: ' + video.videoWidth + 'x' + video.videoHeight);
+      video.play();
+      document.getElementById('viewPlaceholder').style.display = 'none';
+      document.getElementById('shotBtn').disabled = false;
+    };
+    
+    showStatus('viewStatus', '● Подключено', 'ok');
+  });
+  
+  viewCall.on('error', function(err) {
+    log('viewDebug', '❌ Ошибка звонка: ' + err);
+    showStatus('viewStatus', 'Ошибка: ' + err, 'error');
+  });
+  
+  viewCall.on('close', function() {
+    log('viewDebug', 'Соединение закрыто');
+    showStatus('viewStatus', 'Отключено', 'error');
+  });
+}
+
+// ===== Утилиты =====
+function showStatus(id, text, type) {
+  var el = document.getElementById(id);
+  el.classList.remove('status-wait', 'status-ok', 'status-error');
+  el.classList.add('status-' + type);
+  el.textContent = text;
+  el.classList.remove('hidden');
+}
+
+function stopAll() {
+  if (camStream) {
+    camStream.getTracks().forEach(function(t) { t.stop(); });
+    camStream = null;
+  }
+  if (camPeer) {
+    camPeer.destroy();
+    camPeer = null;
+  }
+  if (viewCall) {
+    viewCall.close();
+    viewCall = null;
+  }
+  if (viewPeer) {
+    viewPeer.destroy();
+    viewPeer = null;
+  }
+}
+
+function takeShot() {
+  var v = document.getElementById('viewVideo');
+  if (!v.videoWidth) return;
+  
+  var c = document.createElement('canvas');
+  c.width = v.videoWidth;
+  c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0);
+  
+  var a = document.createElement('a');
+  a.href = c.toDataURL('image/png');
+  a.download = 'oldcam.png';
+  a.click();
+}
+</script>
+
+</body>
+</html>  }
 
   body {
     font-family: 'Roboto', sans-serif;
