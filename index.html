@@ -3,691 +3,828 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>OldCam — камера из старого телефона</title>
+<title>OldCam</title>
 <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0; padding: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #0f1115; color: #eaeaea;
+  :root {
+    --md-sys-color-primary: #00639b;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #cde5ff;
+    --md-sys-color-on-primary-container: #001d32;
+    --md-sys-color-secondary: #52606d;
+    --md-sys-color-secondary-container: #d5e5f4;
+    --md-sys-color-surface: #fdfcff;
+    --md-sys-color-surface-variant: #dfe2eb;
+    --md-sys-color-background: #fdfcff;
+    --md-sys-color-error: #ba1a1a;
+    --md-sys-color-on-surface: #191c1e;
+    --md-sys-color-outline: #73777f;
+    --md-sys-shape-corner-large: 28px;
+    --md-sys-shape-corner-medium: 16px;
+    --md-sys-shape-corner-small: 12px;
+    --md-sys-elevation-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    --md-sys-elevation-2: 0 3px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.12);
+    --md-sys-elevation-3: 0 10px 20px rgba(0,0,0,0.15), 0 3px 6px rgba(0,0,0,0.10);
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: var(--md-sys-color-background);
+    color: var(--md-sys-color-on-surface);
     min-height: 100vh;
+    line-height: 1.5;
   }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 12px; }
-  h1 { font-size: 22px; margin: 8px 0 16px; text-align: center; }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  /* Header */
+  .header {
+    background: var(--md-sys-color-primary-container);
+    padding: 24px 16px;
+    border-radius: var(--md-sys-shape-corner-large);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--md-sys-color-on-primary-container);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .header p {
+    color: var(--md-sys-color-secondary);
+    margin-top: 8px;
+    font-size: 14px;
+  }
+
+  /* Cards */
   .card {
-    background: #1a1d24; border: 1px solid #2a2f3a;
-    border-radius: 10px; padding: 14px; margin-bottom: 14px;
+    background: var(--md-sys-color-surface);
+    border-radius: var(--md-sys-shape-corner-large);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--md-sys-elevation-1);
+    border: 1px solid var(--md-sys-color-surface-variant);
   }
-  label { display: block; font-size: 14px; margin: 8px 0 4px; color: #aab; }
-  input[type=text], input[type=password] {
-    width: 100%; padding: 12px; font-size: 16px;
-    background: #0f1115; color: #fff;
-    border: 1px solid #333; border-radius: 8px;
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--md-sys-color-on-surface);
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  button {
-    width: 100%; padding: 14px; font-size: 17px; font-weight: bold;
-    background: #2d7cf0; color: #fff; border: 0; border-radius: 10px;
-    margin-top: 10px; cursor: pointer;
+
+  /* Mode Selection */
+  .mode-grid {
+    display: grid;
+    gap: 12px;
   }
-  button.secondary { background: #3a3f4a; }
-  button.danger { background: #c0392b; }
-  button:disabled { background: #555; color: #999; }
-  .row { display: -webkit-box; display: -ms-flexbox; display: flex; gap: 8px; }
-  .row button { margin-top: 0; }
-  video {
-    width: 100%; background: #000; border-radius: 8px;
-    max-height: 60vh; display: block;
+
+  .mode-btn {
+    background: var(--md-sys-color-primary-container);
+    border: none;
+    border-radius: var(--md-sys-shape-corner-medium);
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
   }
+
+  .mode-btn:hover {
+    box-shadow: var(--md-sys-elevation-2);
+    transform: translateY(-2px);
+  }
+
+  .mode-btn:active {
+    transform: translateY(0);
+  }
+
+  .mode-btn .material-icons-round {
+    font-size: 48px;
+    color: var(--md-sys-color-on-primary-container);
+  }
+
+  .mode-btn span {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--md-sys-color-on-primary-container);
+  }
+
+  .mode-btn small {
+    font-size: 13px;
+    color: var(--md-sys-color-secondary);
+    font-weight: 400;
+  }
+
+  /* Inputs */
+  .input-group {
+    margin-bottom: 16px;
+  }
+
+  .input-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--md-sys-color-secondary);
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 16px;
+    font-family: 'Roboto', sans-serif;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-corner-small);
+    background: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+    transition: all 0.2s;
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: var(--md-sys-color-primary);
+    box-shadow: 0 0 0 4px rgba(0, 99, 155, 0.1);
+  }
+
+  select.input-field {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%2352606d'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 48px;
+  }
+
+  /* Buttons */
+  .btn {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'Roboto', sans-serif;
+    border: none;
+    border-radius: var(--md-sys-shape-corner-small);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .btn-filled {
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+  }
+
+  .btn-filled:hover {
+    box-shadow: var(--md-sys-elevation-2);
+  }
+
+  .btn-tonal {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-primary-container);
+  }
+
+  .btn-danger {
+    background: var(--md-sys-color-error);
+    color: white;
+  }
+
+  .btn:active {
+    transform: scale(0.98);
+  }
+
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Status */
   .status {
-    font-size: 13px; color: #aab; padding: 8px;
-    background: #0f1115; border-radius: 6px; margin-top: 8px;
+    padding: 12px 16px;
+    border-radius: var(--md-sys-shape-corner-small);
+    font-size: 14px;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  .hidden { display: none !important; }
-  .mode-btn { font-size: 18px; padding: 18px; }
-  .hint { font-size: 12px; color: #889; margin-top: 6px; }
-  .toolbar { margin-top: 10px; }
-  .toolbar button { margin-top: 8px; }
-  .shot-list { margin-top: 10px; }
-  .shot-list img {
-    width: 100%; max-width: 300px; border-radius: 6px;
-    margin: 4px; border: 1px solid #333;
+
+  .status.waiting {
+    background: var(--md-sys-color-surface-variant);
+    color: var(--md-sys-color-secondary);
   }
+
+  .status.success {
+    background: #c8f7c5;
+    color: #2d6a2b;
+  }
+
+  .status.error {
+    background: #ffebee;
+    color: #c62828;
+  }
+
+  .status.connecting {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  /* Video Container */
+  .video-wrapper {
+    position: relative;
+    background: #000;
+    border-radius: var(--md-sys-shape-corner-medium);
+    overflow: hidden;
+    aspect-ratio: 4/3;
+  }
+
+  .video-wrapper video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .video-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #666;
+  }
+
+  .video-placeholder .material-icons-round {
+    font-size: 64px;
+    margin-bottom: 8px;
+    opacity: 0.5;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .toolbar .btn {
+    margin-bottom: 0;
+  }
+
+  .toolbar-full {
+    grid-column: 1 / -1;
+  }
+
+  /* Hidden */
+  .hidden {
+    display: none !important;
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card {
+    animation: fadeIn 0.3s ease;
+  }
+
+  /* Log */
+  .log {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 11px;
+    background: var(--md-sys-color-surface-variant);
+    padding: 8px;
+    border-radius: 8px;
+    margin-top: 12px;
+    max-height: 100px;
+    overflow-y: auto;
+    color: var(--md-sys-color-secondary);
+  }
+
+  /* Shots */
+  .shots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .shot-item {
+    aspect-ratio: 4/3;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .shot-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Badge */
   .badge {
-    display: inline-block; padding: 3px 8px; border-radius: 12px;
-    font-size: 12px; background: #2d7cf0; color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
   }
-  .badge.red { background: #c0392b; }
-  .badge.green { background: #27ae60; }
-  select {
-    width: 100%; padding: 12px; font-size: 16px;
-    background: #0f1115; color: #fff;
-    border: 1px solid #333; border-radius: 8px;
+
+  .pulse {
+    width: 8px;
+    height: 8px;
+    background: #4caf50;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>📹 OldCam</h1>
 
-  <!-- Выбор режима -->
-  <div id="screen-mode" class="card">
-    <p style="text-align:center; margin:6px 0 14px;">Преврати старый телефон в камеру наблюдения</p>
-    <button class="mode-btn" onclick="goMode('cam')">📷 Режим КАМЕРА<br><span class="hint">этот телефон стримит</span></button>
-    <button class="mode-btn secondary" onclick="goMode('view')">👁 Режим ПРОСМОТР<br><span class="hint">смотреть с другого устройства</span></button>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>
+      <span class="material-icons-round">videocam</span>
+      OldCam
+    </h1>
+    <p>Превратите старый телефон в камеру наблюдения</p>
   </div>
 
-  <!-- Экран КАМЕРА -->
-  <div id="screen-cam" class="hidden">
-    <div class="card">
-      <label>Пароль комнаты (придумай любой)</label>
-      <input type="text" id="cam-pass" placeholder="например: myhome123">
-      <p class="hint">Этот же пароль вводи на устройстве просмотра</p>
-
-      <label>Камера</label>
-      <select id="cam-select">
-        <option value="environment">Задняя камера</option>
-        <option value="user">Передняя камера</option>
-      </select>
-
-      <button onclick="startCam()">▶ Начать трансляцию</button>
-      <button class="danger" onclick="stopCam()">⏹ Остановить</button>
-
-      <div class="status" id="cam-status">Ожидание запуска…</div>
-      <div class="hint" id="cam-hint"></div>
+  <!-- Mode Selection -->
+  <div id="modeScreen" class="card">
+    <div class="card-title">
+      <span class="material-icons-round">smartphone</span>
+      Выберите режим
     </div>
-
-    <div class="card">
-      <video id="cam-preview" autoplay muted playsinline></video>
+    <div class="mode-grid">
+      <button class="mode-btn" onclick="selectMode('camera')">
+        <span class="material-icons-round">videocam</span>
+        <span>Камера</span>
+        <small>Транслировать видео с этого устройства</small>
+      </button>
+      <button class="mode-btn" onclick="selectMode('viewer')">
+        <span class="material-icons-round">visibility</span>
+        <span>Просмотр</span>
+        <small>Смотреть трансляцию с камеры</small>
+      </button>
     </div>
   </div>
 
-  <!-- Экран ПРОСМОТР -->
-  <div id="screen-view" class="hidden">
+  <!-- Camera Mode -->
+  <div id="cameraScreen" class="hidden">
     <div class="card">
-      <label>Пароль комнаты</label>
-      <input type="password" id="view-pass" placeholder="введи пароль от камеры">
-      <button onclick="startView()">🔗 Подключиться</button>
-      <button class="danger" onclick="stopView()">✖ Отключиться</button>
-      <div class="status" id="view-status">Ожидание…</div>
-    </div>
-
-    <div class="card">
-      <video id="view-video" autoplay playsinline controls></video>
-
-      <div class="toolbar">
-        <div class="row">
-          <button onclick="takeShot()">📸 Скриншот</button>
-          <button class="secondary" id="talk-btn" onclick="toggleTalk()">🎤 Говорить</button>
-        </div>
-        <button class="secondary" onclick="toggleFullscreen()">⛶ Полный экран</button>
+      <div class="card-title">
+        <span class="material-icons-round">settings</span>
+        Настройки камеры
+      </div>
+      
+      <div class="input-group">
+        <label>Код комнаты</label>
+        <input type="text" id="camCode" class="input-field" placeholder="Придумайте код (например: home123)">
       </div>
 
-      <div class="shot-list" id="shots"></div>
+      <div class="input-group">
+        <label>Камера</label>
+        <select id="camSelect" class="input-field">
+          <option value="environment">Задняя камера</option>
+          <option value="user">Передняя камера</option>
+        </select>
+      </div>
+
+      <button class="btn btn-filled" onclick="startCamera()">
+        <span class="material-icons-round">play_arrow</span>
+        Начать трансляцию
+      </button>
+      <button class="btn btn-danger" onclick="stopCamera()">
+        <span class="material-icons-round">stop</span>
+        Остановить
+      </button>
+
+      <div id="camStatus" class="status waiting hidden">
+        <span class="material-icons-round">info</span>
+        <span id="camStatusText">Ожидание...</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span class="material-icons-round">preview</span>
+        Предпросмотр
+      </div>
+      <div class="video-wrapper">
+        <video id="camPreview" autoplay muted playsinline></video>
+        <div class="video-placeholder" id="camPlaceholder">
+          <span class="material-icons-round">videocam_off</span>
+          <div>Камера не активна</div>
+        </div>
+      </div>
+      <div id="camInfo" class="status hidden" style="margin-top: 12px;"></div>
+    </div>
+  </div>
+
+  <!-- Viewer Mode -->
+  <div id="viewerScreen" class="hidden">
+    <div class="card">
+      <div class="card-title">
+        <span class="material-icons-round">lock</span>
+        Подключение
+      </div>
+      
+      <div class="input-group">
+        <label>Код комнаты</label>
+        <input type="password" id="viewCode" class="input-field" placeholder="Введите код от камеры">
+      </div>
+
+      <button class="btn btn-filled" onclick="connectToCamera()">
+        <span class="material-icons-round">link</span>
+        Подключиться
+      </button>
+      <button class="btn btn-danger" onclick="disconnect()">
+        <span class="material-icons-round">link_off</span>
+        Отключиться
+      </button>
+
+      <div id="viewStatus" class="status waiting hidden">
+        <span class="material-icons-round">info</span>
+        <span id="viewStatusText">Ожидание...</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span class="material-icons-round">tv</span>
+        Трансляция
+      </div>
+      <div class="video-wrapper">
+        <video id="viewVideo" autoplay playsinline controls></video>
+        <div class="video-placeholder" id="viewPlaceholder">
+          <span class="material-icons-round">tv_off</span>
+          <div>Нет подключения</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn btn-tonal" onclick="takeScreenshot()">
+          <span class="material-icons-round">photo_camera</span>
+          Скриншот
+        </button>
+        <button class="btn btn-tonal" id="talkBtn" onclick="toggleTalk()">
+          <span class="material-icons-round">mic</span>
+          Говорить
+        </button>
+        <button class="btn btn-tonal toolbar-full" onclick="toggleFullscreen()">
+          <span class="material-icons-round">fullscreen</span>
+          Полный экран
+        </button>
+      </div>
+
+      <div id="shotsContainer" class="shots-grid hidden"></div>
     </div>
   </div>
 </div>
 
 <script>
-// ===== Навигация =====
-function goMode(m) {
-  document.getElementById('screen-mode').className = 'hidden';
-  if (m === 'cam') {
-    document.getElementById('screen-cam').className = '';
+// ===== Global Variables =====
+let camPeer = null;
+let camStream = null;
+let viewPeer = null;
+let viewCall = null;
+let viewMicStream = null;
+let isTalking = false;
+let connectTimeout = null;
+
+// ===== Mode Selection =====
+function selectMode(mode) {
+  document.getElementById('modeScreen').classList.add('hidden');
+  if (mode === 'camera') {
+    document.getElementById('cameraScreen').classList.remove('hidden');
   } else {
-    document.getElementById('screen-view').className = '';
+    document.getElementById('viewerScreen').classList.remove('hidden');
   }
 }
 
-// ===== Утилиты =====
-function setStatus(id, text, color) {
-  var el = document.getElementById(id);
-  el.textContent = text;
-  if (color) el.style.color = color;
+// ===== Status Updates =====
+function showStatus(elementId, text, type) {
+  const el = document.getElementById(elementId);
+  const textEl = document.getElementById(elementId + 'Text') || el;
+  el.classList.remove('hidden', 'waiting', 'success', 'error', 'connecting');
+  el.classList.add(type);
+  textEl.textContent = text;
 }
 
-// ===== Совместимость с старыми браузерами =====
-function getUserMediaCompat(constraints, successCallback, errorCallback) {
-  // Пробуем разные варианты для старых браузеров
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia(constraints)
-      .then(successCallback)
-      .catch(errorCallback);
-  } else if (navigator.getUserMedia) {
-    navigator.getUserMedia(constraints, successCallback, errorCallback);
-  } else if (navigator.webkitGetUserMedia) {
-    navigator.webkitGetUserMedia(constraints, successCallback, errorCallback);
-  } else if (navigator.mozGetUserMedia) {
-    navigator.mozGetUserMedia(constraints, successCallback, errorCallback);
-  } else if (navigator.msGetUserMedia) {
-    navigator.msGetUserMedia(constraints, successCallback, errorCallback);
-  } else {
-    errorCallback(new Error('getUserMedia не поддерживается в этом браузере'));
-  }
+function hideStatus(elementId) {
+  document.getElementById(elementId).classList.add('hidden');
 }
 
-// ===== Режим КАМЕРА =====
-var camPeer = null;
-var camStream = null;
-var camCalls = [];
-
-function startCam() {
-  var pass = document.getElementById('cam-pass').value.trim();
-  if (!pass) { alert('Введи пароль'); return; }
-
-  var facing = document.getElementById('cam-select').value;
-  setStatus('cam-status', 'Запрашиваю камеру…', '#f39c12');
-
-  // Проверяем поддержку
-  if (!navigator.mediaDevices && !navigator.getUserMedia && !navigator.webkitGetUserMedia && 
-      !navigator.mozGetUserMedia && !navigator.msGetUserMedia) {
-    setStatus('cam-status', '❌ Браузер не поддерживает камеру. Нужен Android 4.4+ в Chrome/Firefox.', '#e74c3c');
+// ===== Camera Functions =====
+async function startCamera() {
+  const code = document.getElementById('camCode').value.trim();
+  if (!code) {
+    alert('Введите код комнаты');
     return;
   }
 
-  var constraints = {
-    video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } },
-    audio: true
-  };
+  showStatus('camStatus', 'Запрос доступа к камере...', 'connecting');
 
-  // Для очень старых браузеров - упрощенные constraints
-  if (!navigator.mediaDevices) {
-    constraints = {
-      video: true,
+  try {
+    // Get camera stream
+    const facing = document.getElementById('camSelect').value;
+    const constraints = {
+      video: { facingMode: facing },
       audio: true
     };
-  }
 
-  getUserMediaCompat(
-    constraints,
-    function(stream) {
-      camStream = stream;
-      var video = document.getElementById('cam-preview');
-      
-      // Совместимость с старыми браузерами
-      if ('srcObject' in video) {
-        video.srcObject = stream;
-      } else if (window.URL && window.URL.createObjectURL) {
-        video.src = window.URL.createObjectURL(stream);
-      } else if (window.webkitURL && window.webkitURL.createObjectURL) {
-        video.src = window.webkitURL.createObjectURL(stream);
-      } else {
-        setStatus('cam-status', '❌ Браузер не поддерживает отображение видео', '#e74c3c');
-        return;
-      }
-      
-      setStatus('cam-status', 'Камера включена. Подключаюсь к серверу…', '#f39c12');
-      initCamPeer(pass);
-    },
-    function(err) {
-      var errorMsg = 'Ошибка камеры: ';
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        errorMsg += 'Доступ запрещен. Разрешите доступ к камере в настройках браузера.';
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        errorMsg += 'Камера не найдена.';
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        errorMsg += 'Камера уже используется другим приложением.';
-      } else {
-        errorMsg += err.message || err.name || 'неизвестная ошибка';
-      }
-      setStatus('cam-status', '❌ ' + errorMsg, '#e74c3c');
-      console.error('Camera error:', err);
-    }
-  );
+    camStream = await navigator.mediaDevices.getUserMedia(constraints);
+    
+    // Show preview
+    const video = document.getElementById('camPreview');
+    video.srcObject = camStream;
+    video.onloadedmetadata = () => {
+      video.play();
+      document.getElementById('camPlaceholder').style.display = 'none';
+    };
+
+    showStatus('camStatus', 'Камера активна. Создание соединения...', 'success');
+    
+    // Initialize PeerJS
+    initCameraPeer(code);
+    
+  } catch (err) {
+    console.error('Camera error:', err);
+    showStatus('camStatus', 'Ошибка: ' + err.message, 'error');
+  }
 }
 
-function initCamPeer(pass) {
-  var peerId = 'oldcam-' + pass;
-  camPeer = new Peer(peerId, { debug: 1 });
-
-  camPeer.on('open', function(id) {
-    setStatus('cam-status', '● В ЭФИРЕ. ID: ' + pass, '#27ae60');
-    document.getElementById('cam-hint').textContent =
-      'На другом устройстве открой эту же страницу, выбери ПРОСМОТР и введи пароль: ' + pass;
+function initCameraPeer(code) {
+  const peerId = 'oldcam-' + code.toLowerCase();
+  
+  camPeer = new Peer(peerId, {
+    debug: 2,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    }
   });
 
-  camPeer.on('call', function(call) {
+  camPeer.on('open', (id) => {
+    console.log('Peer connected:', id);
+    showStatus('camStatus', '● Онлайн. Код: ' + code, 'success');
+    
+    const infoEl = document.getElementById('camInfo');
+    infoEl.classList.remove('hidden');
+    infoEl.innerHTML = '<div class="badge"><span class="pulse"></span> Готов к подключению</div>';
+    infoEl.innerHTML += '<p style="margin-top:8px;font-size:13px;">Откройте этот сайт на другом устройстве, выберите "Просмотр" и введите код: <b>' + code + '</b></p>';
+  });
+
+  camPeer.on('call', (call) => {
+    console.log('Incoming call');
     call.answer(camStream);
-    camCalls.push(call);
-    call.on('close', function() {
-      var i = camCalls.indexOf(call);
-      if (i >= 0) camCalls.splice(i, 1);
+    
+    call.on('stream', (remoteStream) => {
+      console.log('Call established');
+    });
+    
+    call.on('close', () => {
+      console.log('Call closed');
     });
   });
 
-  camPeer.on('error', function(err) {
-    setStatus('cam-status', '❌ Ошибка: ' + err.type + '. ID уже занят?', '#e74c3c');
+  camPeer.on('error', (err) => {
+    console.error('Peer error:', err);
+    if (err.type === 'unavailable-id') {
+      showStatus('camStatus', 'Код занят! Выберите другой', 'error');
+    } else {
+      showStatus('camStatus', 'Ошибка соединения: ' + err.type, 'error');
+    }
   });
 }
 
-function stopCam() {
+function stopCamera() {
   if (camStream) {
-    if (camStream.getTracks) {
-      camStream.getTracks().forEach(function(t){ t.stop(); });
-    } else if (camStream.stop) {
-      camStream.stop();
-    }
+    camStream.getTracks().forEach(track => track.stop());
     camStream = null;
   }
-  if (camPeer) { camPeer.destroy(); camPeer = null; }
-  camCalls = [];
-  document.getElementById('cam-preview').srcObject = null;
-  setStatus('cam-status', 'Остановлено', '#aab');
-  document.getElementById('cam-hint').textContent = '';
-}
-
-// ===== Режим ПРОСМОТР =====
-var viewPeer = null;
-var viewCall = null;
-var viewMicStream = null;
-var talking = false;
-
-function startView() {
-  var pass = document.getElementById('view-pass').value.trim();
-  if (!pass) { alert('Введи пароль'); return; }
-
-  setStatus('view-status', 'Подключаюсь…', '#f39c12');
-
-  viewPeer = new Peer('oldcam-view-' + Math.random().toString(36).slice(2,8), { debug: 1 });
-
-  viewPeer.on('open', function() {
-    var targetId = 'oldcam-' + pass;
-    
-    // Проверяем поддержку
-    if (!navigator.mediaDevices && !navigator.getUserMedia && !navigator.webkitGetUserMedia) {
-      setStatus('view-status', '❌ Браузер не поддерживает WebRTC', '#e74c3c');
-      return;
-    }
-    
-    // Запрашиваем только микрофон
-    getUserMediaCompat(
-      { video: false, audio: true },
-      function(mic) {
-        viewMicStream = mic;
-        viewCall = viewPeer.call(targetId, mic);
-        bindViewCall();
-      },
-      function() {
-        // даже без микрофона пробуем подключиться
-        viewCall = viewPeer.call(targetId, null);
-        bindViewCall();
-      }
-    );
-  });
-
-  viewPeer.on('error', function(err) {
-    setStatus('view-status', '❌ Ошибка: ' + err.type + '. Камера не в сети или неверный пароль.', '#e74c3c');
-  });
-}
-
-function bindViewCall() {
-  setStatus('view-status', 'Ожидание потока…', '#f39c12');
-  viewCall.on('stream', function(remoteStream) {
-    var video = document.getElementById('view-video');
-    if ('srcObject' in video) {
-      video.srcObject = remoteStream;
-    } else if (window.URL && window.URL.createObjectURL) {
-      video.src = window.URL.createObjectURL(remoteStream);
-    }
-    setStatus('view-status', '● Подключено', '#27ae60');
-  });
-  viewCall.on('close', function() {
-    setStatus('view-status', 'Соединение закрыто', '#e74c3c');
-  });
-  viewCall.on('error', function(err) {
-    setStatus('view-status', '❌ Ошибка звонка: ' + err, '#e74c3c');
-  });
-}
-
-function stopView() {
-  if (viewCall) { viewCall.close(); viewCall = null; }
-  if (viewMicStream) {
-    if (viewMicStream.getTracks) {
-      viewMicStream.getTracks().forEach(function(t){t.stop();});
-    } else if (viewMicStream.stop) {
-      viewMicStream.stop();
-    }
-    viewMicStream = null;
+  if (camPeer) {
+    camPeer.destroy();
+    camPeer = null;
   }
-  if (viewPeer) { viewPeer.destroy(); viewPeer = null; }
-  document.getElementById('view-video').srcObject = null;
-  setStatus('view-status', 'Отключено', '#aab');
-  talking = false;
-  document.getElementById('talk-btn').textContent = '🎤 Говорить';
+  
+  document.getElementById('camPreview').srcObject = null;
+  document.getElementById('camPlaceholder').style.display = 'block';
+  hideStatus('camStatus');
+  document.getElementById('camInfo').classList.add('hidden');
 }
 
-// ===== Говорить (вкл/выкл микрофон) =====
-function toggleTalk() {
-  if (!viewMicStream) { alert('Микрофон не активен'); return; }
-  talking = !talking;
-  viewMicStream.getAudioTracks().forEach(function(t){ t.enabled = talking; });
-  var btn = document.getElementById('talk-btn');
-  btn.textContent = talking ? '🔴 Идёт передача' : '🎤 Говорить';
-  btn.className = talking ? 'danger' : 'secondary';
-}
-
-// ===== Скриншот =====
-function takeShot() {
-  var v = document.getElementById('view-video');
-  if (!v.videoWidth) { alert('Нет видео'); return; }
-  var c = document.createElement('canvas');
-  c.width = v.videoWidth; c.height = v.videoHeight;
-  c.getContext('2d').drawImage(v, 0, 0);
-  var url = c.toDataURL('image/png');
-
-  var a = document.createElement('a');
-  a.href = url;
-  var d = new Date();
-  a.download = 'oldcam-' + d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate() +
-               '-' + d.getHours() + '-' + d.getMinutes() + '-' + d.getSeconds() + '.png';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-
-  // Превью
-  var list = document.getElementById('shots');
-  var img = document.createElement('img');
-  img.src = url;
-  list.insertBefore(img, list.firstChild);
-}
-
-// ===== Полный экран =====
-function toggleFullscreen() {
-  var v = document.getElementById('view-video');
-  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-    if (v.requestFullscreen) v.requestFullscreen();
-    else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
-  } else {
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-  }
-}
-</script>
-</body>
-</html>  .row { display: -webkit-box; display: -ms-flexbox; display: flex; gap: 8px; }
-  .row button { margin-top: 0; }
-  video {
-    width: 100%; background: #000; border-radius: 8px;
-    max-height: 60vh; display: block;
-  }
-  .status {
-    font-size: 13px; color: #aab; padding: 8px;
-    background: #0f1115; border-radius: 6px; margin-top: 8px;
-  }
-  .hidden { display: none !important; }
-  .mode-btn { font-size: 18px; padding: 18px; }
-  .hint { font-size: 12px; color: #889; margin-top: 6px; }
-  .toolbar { margin-top: 10px; }
-  .toolbar button { margin-top: 8px; }
-  .shot-list { margin-top: 10px; }
-  .shot-list img {
-    width: 100%; max-width: 300px; border-radius: 6px;
-    margin: 4px; border: 1px solid #333;
-  }
-  .badge {
-    display: inline-block; padding: 3px 8px; border-radius: 12px;
-    font-size: 12px; background: #2d7cf0; color: #fff;
-  }
-  .badge.red { background: #c0392b; }
-  .badge.green { background: #27ae60; }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <h1>📹 OldCam</h1>
-
-  <!-- Выбор режима -->
-  <div id="screen-mode" class="card">
-    <p style="text-align:center; margin:6px 0 14px;">Преврати старый телефон в камеру наблюдения</p>
-    <button class="mode-btn" onclick="goMode('cam')">📷 Режим КАМЕРА<br><span class="hint">этот телефон стримит</span></button>
-    <button class="mode-btn secondary" onclick="goMode('view')">👁 Режим ПРОСМОТР<br><span class="hint">смотреть с другого устройства</span></button>
-  </div>
-
-  <!-- Экран КАМЕРА -->
-  <div id="screen-cam" class="hidden">
-    <div class="card">
-      <label>Пароль комнаты (придумай любой)</label>
-      <input type="text" id="cam-pass" placeholder="например: myhome123">
-      <p class="hint">Этот же пароль вводи на устройстве просмотра</p>
-
-      <label>Камера</label>
-      <select id="cam-select" style="width:100%;padding:12px;background:#0f1115;color:#fff;border:1px solid #333;border-radius:8px;font-size:16px;">
-        <option value="environment">Задняя камера</option>
-        <option value="user">Передняя камера</option>
-      </select>
-
-      <button onclick="startCam()">▶ Начать трансляцию</button>
-      <button class="danger" onclick="stopCam()">⏹ Остановить</button>
-
-      <div class="status" id="cam-status">Ожидание запуска…</div>
-      <div class="hint" id="cam-hint"></div>
-    </div>
-
-    <div class="card">
-      <video id="cam-preview" autoplay muted playsinline></video>
-    </div>
-  </div>
-
-  <!-- Экран ПРОСМОТР -->
-  <div id="screen-view" class="hidden">
-    <div class="card">
-      <label>Пароль комнаты</label>
-      <input type="password" id="view-pass" placeholder="введи пароль от камеры">
-      <button onclick="startView()">🔗 Подключиться</button>
-      <button class="danger" onclick="stopView()">✖ Отключиться</button>
-      <div class="status" id="view-status">Ожидание…</div>
-    </div>
-
-    <div class="card">
-      <video id="view-video" autoplay playsinline controls></video>
-
-      <div class="toolbar">
-        <div class="row">
-          <button onclick="takeShot()">📸 Скриншот</button>
-          <button class="secondary" id="talk-btn" onclick="toggleTalk()">🎤 Говорить</button>
-        </div>
-        <button class="secondary" onclick="toggleFullscreen()">⛶ Полный экран</button>
-      </div>
-
-      <div class="shot-list" id="shots"></div>
-    </div>
-  </div>
-</div>
-
-<script>
-// ===== Навигация =====
-function goMode(m) {
-  document.getElementById('screen-mode').className = 'hidden';
-  if (m === 'cam') {
-    document.getElementById('screen-cam').className = '';
-  } else {
-    document.getElementById('screen-view').className = '';
-  }
-}
-
-// ===== Утилиты =====
-function setStatus(id, text, color) {
-  var el = document.getElementById(id);
-  el.textContent = text;
-  if (color) el.style.color = color;
-}
-
-// ===== Режим КАМЕРА =====
-var camPeer = null;
-var camStream = null;
-var camCalls = [];
-
-function startCam() {
-  var pass = document.getElementById('cam-pass').value.trim();
-  if (!pass) { alert('Введи пароль'); return; }
-
-  var facing = document.getElementById('cam-select').value;
-  setStatus('cam-status', 'Запрашиваю камеру…', '#f39c12');
-
-  var constraints = {
-    video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } },
-    audio: true
-  };
-
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    setStatus('cam-status', 'Браузер не поддерживает камеру. Нужен Android 4.4+ в Chrome.', '#e74c3c');
+// ===== Viewer Functions =====
+async function connectToCamera() {
+  const code = document.getElementById('viewCode').value.trim();
+  if (!code) {
+    alert('Введите код комнаты');
     return;
   }
 
-  navigator.mediaDevices.getUserMedia(constraints)
-    .then(function(stream) {
-      camStream = stream;
-      document.getElementById('cam-preview').srcObject = stream;
-      setStatus('cam-status', 'Камера включена. Подключаюсь к серверу…', '#f39c12');
-      initCamPeer(pass);
-    })
-    .catch(function(err) {
-      setStatus('cam-status', 'Ошибка камеры: ' + err.message, '#e74c3c');
-    });
-}
+  showStatus('viewStatus', 'Подключение...', 'connecting');
 
-function initCamPeer(pass) {
-  var peerId = 'oldcam-' + pass;
-  camPeer = new Peer(peerId, { debug: 1 });
-
-  camPeer.on('open', function(id) {
-    setStatus('cam-status', '● В ЭФИРЕ. ID: ' + pass, '#27ae60');
-    document.getElementById('cam-hint').textContent =
-      'На другом устройстве открой эту же страницу, выбери ПРОСМОТР и введи пароль: ' + pass;
-  });
-
-  camPeer.on('call', function(call) {
-    call.answer(camStream);
-    camCalls.push(call);
-    call.on('close', function() {
-      var i = camCalls.indexOf(call);
-      if (i >= 0) camCalls.splice(i, 1);
-    });
-  });
-
-  camPeer.on('error', function(err) {
-    setStatus('cam-status', 'Ошибка: ' + err.type + '. ID уже занят?', '#e74c3c');
-  });
-}
-
-function stopCam() {
-  if (camStream) {
-    camStream.getTracks().forEach(function(t){ t.stop(); });
-    camStream = null;
-  }
-  if (camPeer) { camPeer.destroy(); camPeer = null; }
-  camCalls = [];
-  document.getElementById('cam-preview').srcObject = null;
-  setStatus('cam-status', 'Остановлено', '#aab');
-  document.getElementById('cam-hint').textContent = '';
-}
-
-// ===== Режим ПРОСМОТР =====
-var viewPeer = null;
-var viewCall = null;
-var viewMicStream = null;
-var talking = false;
-
-function startView() {
-  var pass = document.getElementById('view-pass').value.trim();
-  if (!pass) { alert('Введи пароль'); return; }
-
-  setStatus('view-status', 'Подключаюсь…', '#f39c12');
-
-  viewPeer = new Peer('oldcam-view-' + Math.random().toString(36).slice(2,8), { debug: 1 });
-
-  viewPeer.on('open', function() {
-    var targetId = 'oldcam-' + pass;
-    // Запрашиваем и видео, и микрофон для двусторонней связи
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setStatus('view-status', 'Браузер не поддерживает WebRTC', '#e74c3c');
-      return;
+  const targetId = 'oldcam-' + code.toLowerCase();
+  
+  viewPeer = new Peer(null, {
+    debug: 2,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ]
     }
-    navigator.mediaDevices.getUserMedia({ video: false, audio: true })
-      .then(function(mic) {
-        viewMicStream = mic;
-        viewCall = viewPeer.call(targetId, mic);
-        bindViewCall();
-      })
-      .catch(function() {
-        // даже без микрофона пробуем подключиться
-        viewCall = viewPeer.call(targetId, null);
-        bindViewCall();
-      });
   });
 
-  viewPeer.on('error', function(err) {
-    setStatus('view-status', 'Ошибка: ' + err.type + '. Камера не в сети или неверный пароль.', '#e74c3c');
+  viewPeer.on('open', (id) => {
+    console.log('Viewer peer connected:', id);
+    console.log('Calling:', targetId);
+    
+    // Try to get microphone
+    try {
+      viewMicStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      viewCall = viewPeer.call(targetId, viewMicStream);
+    } catch (err) {
+      console.log('No microphone:', err);
+      viewCall = viewPeer.call(targetId, null);
+    }
+    
+    bindCall();
+    
+    // Timeout
+    connectTimeout = setTimeout(() => {
+      if (!viewCall || !viewCall.open) {
+        showStatus('viewStatus', 'Таймаут. Камера не отвечает', 'error');
+      }
+    }, 15000);
+  });
+
+  viewPeer.on('error', (err) => {
+    console.error('Viewer error:', err);
+    if (err.type === 'peer-unavailable') {
+      showStatus('viewStatus', 'Камера не найдена. Проверьте код', 'error');
+    } else {
+      showStatus('viewStatus', 'Ошибка: ' + err.type, 'error');
+    }
+    clearTimeout(connectTimeout);
   });
 }
 
-function bindViewCall() {
-  setStatus('view-status', 'Ожидание потока…', '#f39c12');
-  viewCall.on('stream', function(remoteStream) {
-    document.getElementById('view-video').srcObject = remoteStream;
-    setStatus('view-status', '● Подключено', '#27ae60');
+function bindCall() {
+  viewCall.on('stream', (remoteStream) => {
+    console.log('Received stream');
+    clearTimeout(connectTimeout);
+    
+    const video = document.getElementById('viewVideo');
+    video.srcObject = remoteStream;
+    video.onloadedmetadata = () => {
+      video.play();
+      document.getElementById('viewPlaceholder').style.display = 'none';
+    };
+    
+    showStatus('viewStatus', '● Подключено', 'success');
   });
-  viewCall.on('close', function() {
-    setStatus('view-status', 'Соединение закрыто', '#e74c3c');
+
+  viewCall.on('close', () => {
+    console.log('Call closed');
+    showStatus('viewStatus', 'Соединение закрыто', 'error');
+    clearTimeout(connectTimeout);
   });
-  viewCall.on('error', function(err) {
-    setStatus('view-status', 'Ошибка звонка: ' + err, '#e74c3c');
+
+  viewCall.on('error', (err) => {
+    console.error('Call error:', err);
+    showStatus('viewStatus', 'Ошибка: ' + err, 'error');
+    clearTimeout(connectTimeout);
   });
 }
 
-function stopView() {
-  if (viewCall) { viewCall.close(); viewCall = null; }
-  if (viewMicStream) { viewMicStream.getTracks().forEach(function(t){t.stop();}); viewMicStream = null; }
-  if (viewPeer) { viewPeer.destroy(); viewPeer = null; }
-  document.getElementById('view-video').srcObject = null;
-  setStatus('view-status', 'Отключено', '#aab');
-  talking = false;
-  document.getElementById('talk-btn').textContent = '🎤 Говорить';
+function disconnect() {
+  if (viewCall) {
+    viewCall.close();
+    viewCall = null;
+  }
+  if (viewMicStream) {
+    viewMicStream.getTracks().forEach(track => track.stop());
+    viewMicStream = null;
+  }
+  if (viewPeer) {
+    viewPeer.destroy();
+    viewPeer = null;
+  }
+  
+  document.getElementById('viewVideo').srcObject = null;
+  document.getElementById('viewPlaceholder').style.display = 'block';
+  hideStatus('viewStatus');
+  isTalking = false;
+  updateTalkButton();
+  clearTimeout(connectTimeout);
 }
 
-// ===== Говорить (вкл/выкл микрофон) =====
+// ===== Utilities =====
 function toggleTalk() {
-  if (!viewMicStream) { alert('Микрофон не активен'); return; }
-  talking = !talking;
-  viewMicStream.getAudioTracks().forEach(function(t){ t.enabled = talking; });
-  var btn = document.getElementById('talk-btn');
-  btn.textContent = talking ? '🔴 Идёт передача' : '🎤 Говорить';
-  btn.className = talking ? 'danger' : 'secondary';
+  if (!viewMicStream) return;
+  
+  isTalking = !isTalking;
+  viewMicStream.getAudioTracks().forEach(track => {
+    track.enabled = isTalking;
+  });
+  updateTalkButton();
 }
 
-// ===== Скриншот =====
-function takeShot() {
-  var v = document.getElementById('view-video');
-  if (!v.videoWidth) { alert('Нет видео'); return; }
-  var c = document.createElement('canvas');
-  c.width = v.videoWidth; c.height = v.videoHeight;
-  c.getContext('2d').drawImage(v, 0, 0);
-  var url = c.toDataURL('image/png');
-
-  var a = document.createElement('a');
-  a.href = url;
-  var d = new Date();
-  a.download = 'oldcam-' + d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate() +
-               '-' + d.getHours() + '-' + d.getMinutes() + '-' + d.getSeconds() + '.png';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-
-  // Превью
-  var list = document.getElementById('shots');
-  var img = document.createElement('img');
-  img.src = url;
-  list.insertBefore(img, list.firstChild);
-}
-
-// ===== Полный экран =====
-function toggleFullscreen() {
-  var v = document.getElementById('view-video');
-  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-    if (v.requestFullscreen) v.requestFullscreen();
-    else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+function updateTalkButton() {
+  const btn = document.getElementById('talkBtn');
+  if (isTalking) {
+    btn.innerHTML = '<span class="material-icons-round">mic</span> Говорю...';
+    btn.classList.remove('btn-tonal');
+    btn.classList.add('btn-danger');
   } else {
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    btn.innerHTML = '<span class="material-icons-round">mic</span> Говорить';
+    btn.classList.remove('btn-danger');
+    btn.classList.add('btn-tonal');
+  }
+}
+
+function takeScreenshot() {
+  const video = document.getElementById('viewVideo');
+  if (!video.videoWidth) {
+    alert('Нет видео');
+    return;
+  }
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'oldcam-' + Date.now() + '.png';
+  a.click();
+  
+  // Show in gallery
+  const container = document.getElementById('shotsContainer');
+  container.classList.remove('hidden');
+  const div = document.createElement('div');
+  div.className = 'shot-item';
+  div.innerHTML = '<img src="' + url + '">';
+  container.insertBefore(div, container.firstChild);
+}
+
+function toggleFullscreen() {
+  const video = document.getElementById('viewVideo');
+  if (!document.fullscreenElement) {
+    video.requestFullscreen().catch(err => {
+      console.error('Fullscreen error:', err);
+    });
+  } else {
+    document.exitFullscreen();
   }
 }
 </script>
+
 </body>
 </html>
