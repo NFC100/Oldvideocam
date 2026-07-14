@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Моя IP-камера</title>
-    <!-- Подключаем бесплатную библиотеку PeerJS для связи по всему миру -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
         body { background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
         .card { background-color: #ffffff; padding: 24px; border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 20px; }
         h2 { color: #1a1c1e; text-align: center; }
-        .video-wrapper { width: 100%; border-radius: 20px; overflow: hidden; background-color: #e1e2e8; aspect-ratio: 4/3; }
+        .video-wrapper { width: 100%; border-radius: 20px; overflow: hidden; background-color: #000; aspect-ratio: 4/3; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        .info-box { background: #d1e4ff; padding: 12px; border-radius: 12px; text-align: center; font-weight: bold; color: #001d36; word-break: break-all; }
+        .info-box { background: #d1e4ff; padding: 12px; border-radius: 12px; text-align: center; font-size: 18px; color: #001d36; }
         .controls { display: flex; flex-direction: column; gap: 10px; }
-        input { padding: 14px; border-radius: 12px; border: 1px solid #ccc; font-size: 16px; text-align: center; }
+        input { padding: 14px; border-radius: 12px; border: 1px solid #ccc; font-size: 18px; text-align: center; outline: none; font-weight: bold; letter-spacing: 2px; }
+        input:focus { border-color: #0061a4; }
         .btn { border: none; padding: 14px; border-radius: 24px; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.2s; }
         .btn:active { transform: scale(0.95); }
         .btn-cam { background-color: #0061a4; color: white; }
@@ -31,44 +31,52 @@
             <video id="video-player" autoplay playsinline></video>
         </div>
 
-        <div id="status" class="info-box">Ожидание...</div>
+        <div id="status" class="info-box">Подключение к серверу...</div>
 
-        <div class="controls" id="mode-selection">
-            <button class="btn btn-cam" onclick="startCameraMode()">1. Сделать это устройство КАМЕРОЙ</button>
-            <input type="text" id="target-id" placeholder="Введите ID камеры сюда">
-            <button class="btn btn-watch" onclick="startViewerMode()">2. СМОТРЕТЬ трансляцию</button>
+        <div class="controls" id="mode-selection" style="display: none;">
+            <button class="btn btn-cam" onclick="startCameraMode()">1. Сделать это КАМЕРОЙ</button>
+            <input type="text" id="target-id" placeholder="ПИН-КОД (5 цифр)" maxlength="5">
+            <button class="btn btn-watch" onclick="startViewerMode()">2. СМОТРЕТЬ</button>
         </div>
     </div>
 
     <script>
         const videoElement = document.getElementById('video-player');
         const statusBox = document.getElementById('status');
-        const peer = new Peer(); // Создаем подключение к бесплатному серверу PeerJS
+        const modeSelection = document.getElementById('mode-selection');
+        
+        // Генерируем случайный 5-значный ПИН-код (от 10000 до 99999)
+        const myPin = Math.floor(10000 + Math.random() * 90000).toString();
+        
+        // Передаем этот ПИН-код серверу при подключении
+        const peer = new Peer(myPin); 
+        let myStream = null;
 
-        let myId = '';
-
-        // Получаем свой уникальный ID от сервера
         peer.on('open', function(id) {
-            myId = id;
             statusBox.innerText = "Готово к работе!";
+            modeSelection.style.display = 'flex';
         });
 
         // ==========================================
-        // РЕЖИМ 1: ЭТО УСТРОЙСТВО РАБОТАЕТ КАК КАМЕРА
+        // РЕЖИМ 1: КАМЕРА (Планшет)
         // ==========================================
         async function startCameraMode() {
             try {
-                // Включаем камеру планшета
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                videoElement.srcObject = stream;
-                videoElement.muted = true; // Выключаем звук у себя, чтобы не было эха
+                myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                videoElement.srcObject = myStream;
+                videoElement.muted = true;
                 
-                statusBox.innerHTML = `Я КАМЕРА.<br>Мой ID: <b>${myId}</b><br><small>(Введи этот ID на другом устройстве)</small>`;
-                document.getElementById('mode-selection').style.display = 'none';
+                // Выводим ПИН-код крупно
+                statusBox.innerHTML = `ПИН-КОД КАМЕРЫ:<br><span style="font-size: 32px; font-weight: 900; letter-spacing: 4px; color: #0061a4;">${myPin}</span>`;
+                modeSelection.style.display = 'none';
 
-                // Ждем входящего звонка от зрителя
-                peer.on('call', function(call) {
-                    call.answer(stream); // Автоматически отвечаем и передаем видео
+                peer.on('connection', function(conn) {
+                    conn.on('data', function(data) {
+                        if (data === 'WATCH_ME') {
+                            statusBox.innerHTML = `ПИН-КОД: ${myPin}<br><span style="color: #2e7d32;">Трансляция идет!</span>`;
+                            peer.call(conn.peer, myStream);
+                        }
+                    });
                 });
 
             } catch (err) {
@@ -77,25 +85,34 @@
         }
 
         // ==========================================
-        // РЕЖИМ 2: ЭТО УСТРОЙСТВО СМОТРИТ
+        // РЕЖИМ 2: ЗРИТЕЛЬ (Телефон)
         // ==========================================
         function startViewerMode() {
             const camId = document.getElementById('target-id').value.trim();
-            if (!camId) {
-                alert("Сначала введите ID камеры!");
+            if (camId.length !== 5) {
+                alert("Введите 5-значный ПИН-код!");
                 return;
             }
 
-            statusBox.innerText = "Подключение к камере...";
-            document.getElementById('mode-selection').style.display = 'none';
+            statusBox.innerText = "Подключение...";
+            modeSelection.style.display = 'none';
 
-            // "Звоним" на камеру по ее ID (видео с нашей стороны не передаем)
-            const call = peer.call(camId, null);
+            const conn = peer.connect(camId);
+            conn.on('open', function() {
+                conn.send('WATCH_ME'); 
+            });
 
-            // Когда получаем видео от камеры, выводим на экран
-            call.on('stream', function(remoteStream) {
-                videoElement.srcObject = remoteStream;
-                statusBox.innerText = "Трансляция идет!";
+            peer.on('call', function(call) {
+                call.answer(); 
+                call.on('stream', function(remoteStream) {
+                    videoElement.srcObject = remoteStream;
+                    statusBox.innerText = "В эфире";
+                });
+            });
+
+            peer.on('error', function(err) {
+                statusBox.innerText = "Камера не найдена!";
+                setTimeout(() => location.reload(), 3000);
             });
         }
     </script>
