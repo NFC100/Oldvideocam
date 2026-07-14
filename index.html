@@ -20,6 +20,16 @@
         .btn:active { transform: scale(0.95); }
         .btn-cam { background-color: #0061a4; color: white; }
         .btn-watch { background-color: #2e7d32; color: white; }
+        
+        /* Стили для кнопки сирены */
+        .btn-siren { background-color: #ff9800; color: white; font-weight: bold; display: none; }
+        .btn-siren.active { background-color: #d32f2f; animation: flash 0.5s infinite; }
+        
+        @keyframes flash {
+            0% { background-color: #d32f2f; }
+            50% { background-color: #ff5252; }
+            100% { background-color: #d32f2f; }
+        }
     </style>
 </head>
 <body>
@@ -38,19 +48,27 @@
             <input type="text" id="target-id" placeholder="ПИН-КОД (5 цифр)" maxlength="5">
             <button class="btn btn-watch" onclick="startViewerMode()">2. СМОТРЕТЬ</button>
         </div>
+
+        <button id="btn-siren" class="btn btn-siren" onclick="toggleSiren()">🚨 ВКЛЮЧИТЬ СИРЕНУ</button>
     </div>
 
     <script>
         const videoElement = document.getElementById('video-player');
         const statusBox = document.getElementById('status');
         const modeSelection = document.getElementById('mode-selection');
+        const btnSiren = document.getElementById('btn-siren');
         
-        // Генерируем случайный 5-значный ПИН-код (от 10000 до 99999)
         const myPin = Math.floor(10000 + Math.random() * 90000).toString();
-        
-        // Передаем этот ПИН-код серверу при подключении
         const peer = new Peer(myPin); 
+        
         let myStream = null;
+        let activeConnection = null; // Хранит активное соединение
+        let isSirenOn = false;
+
+        // --- Переменные для звука ---
+        let audioCtx = null;
+        let sirenOscillator = null;
+        let sirenInterval = null;
 
         peer.on('open', function(id) {
             statusBox.innerText = "Готово к работе!";
@@ -62,11 +80,13 @@
         // ==========================================
         async function startCameraMode() {
             try {
+                // Инициализируем аудио движок по клику, чтобы браузер разрешил звук
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
                 myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 videoElement.srcObject = myStream;
                 videoElement.muted = true;
                 
-                // Выводим ПИН-код крупно
                 statusBox.innerHTML = `ПИН-КОД КАМЕРЫ:<br><span style="font-size: 32px; font-weight: 900; letter-spacing: 4px; color: #0061a4;">${myPin}</span>`;
                 modeSelection.style.display = 'none';
 
@@ -76,6 +96,9 @@
                             statusBox.innerHTML = `ПИН-КОД: ${myPin}<br><span style="color: #2e7d32;">Трансляция идет!</span>`;
                             peer.call(conn.peer, myStream);
                         }
+                        // Обработка команд сирены
+                        if (data === 'START_SIREN') playSirenLocally();
+                        if (data === 'STOP_SIREN') stopSirenLocally();
                     });
                 });
 
@@ -97,9 +120,9 @@
             statusBox.innerText = "Подключение...";
             modeSelection.style.display = 'none';
 
-            const conn = peer.connect(camId);
-            conn.on('open', function() {
-                conn.send('WATCH_ME'); 
+            activeConnection = peer.connect(camId);
+            activeConnection.on('open', function() {
+                activeConnection.send('WATCH_ME'); 
             });
 
             peer.on('call', function(call) {
@@ -107,7 +130,72 @@
                 call.on('stream', function(remoteStream) {
                     videoElement.srcObject = remoteStream;
                     statusBox.innerText = "В эфире";
+                    // Показываем кнопку сирены, когда видео пошло
+                    btnSiren.style.display = 'block'; 
                 });
+            });
+
+            peer.on('error', function(err) {
+                statusBox.innerText = "Камера не найдена!";
+                setTimeout(() => location.reload(), 3000);
+            });
+        }
+
+        // ==========================================
+        // ЛОГИКА УПРАВЛЕНИЯ СИРЕНОЙ (КНОПКА ЗРИТЕЛЯ)
+        // ==========================================
+        function toggleSiren() {
+            if (!activeConnection) return;
+
+            if (!isSirenOn) {
+                activeConnection.send('START_SIREN'); // Отправляем приказ планшету
+                btnSiren.innerText = "🔇 ВЫКЛЮЧИТЬ СИРЕНУ";
+                btnSiren.classList.add('active');
+                isSirenOn = true;
+            } else {
+                activeConnection.send('STOP_SIREN');
+                btnSiren.innerText = "🚨 ВКЛЮЧИТЬ СИРЕНУ";
+                btnSiren.classList.remove('active');
+                isSirenOn = false;
+            }
+        }
+
+        // ==========================================
+        // ГЕНЕРАТОР ЗВУКА СИРЕНЫ (РАБОТАЕТ НА ПЛАНШЕТЕ)
+        // ==========================================
+        function playSirenLocally() {
+            if (!audioCtx) return;
+            if (sirenOscillator) return; // Сирена уже орет
+
+            sirenOscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            sirenOscillator.type = 'sawtooth'; // Резкий "пилящий" звук
+            gainNode.gain.value = 1.0; // Максимальная громкость
+            
+            sirenOscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            sirenOscillator.frequency.value = 600;
+            sirenOscillator.start();
+
+            // Переключаем частоту туда-сюда, как у спецсигнала
+            sirenInterval = setInterval(() => {
+                sirenOscillator.frequency.value = sirenOscillator.frequency.value === 600 ? 1200 : 600;
+            }, 300);
+        }
+
+        function stopSirenLocally() {
+            if (sirenOscillator) {
+                clearInterval(sirenInterval);
+                sirenOscillator.stop();
+                sirenOscillator.disconnect();
+                sirenOscillator = null;
+            }
+        }
+    </script>
+</body>
+</html>                });
             });
 
             peer.on('error', function(err) {
